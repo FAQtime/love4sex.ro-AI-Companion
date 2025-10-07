@@ -2,14 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 // FIX: Import correct GenAI classes and types as per documentation.
 import { GoogleGenAI, Chat, FunctionDeclaration, Type, Part } from '@google/genai';
 
-import type { DisplayMessage, Product } from './types';
-import { Header } from './components/Header';
-import { ChatWindow } from './components/ChatWindow';
-import { MessageInput } from './components/MessageInput';
-import { StoreLink } from './components/StoreLink';
-import { SafetyTipsModal } from './components/SafetyTipsModal';
-import { SettingsModal } from './components/SettingsModal';
-import { playMessageSentSound, playMessageReceivedSound } from './utils/sounds';
+import type { DisplayMessage, Product } from './types.ts';
+import { Header } from './components/Header.tsx';
+import { ChatWindow } from './components/ChatWindow.tsx';
+import { MessageInput } from './components/MessageInput.tsx';
+import { StoreLink } from './components/StoreLink.tsx';
+import { SafetyTipsModal } from './components/SafetyTipsModal.tsx';
+import { SettingsModal } from './components/SettingsModal.tsx';
+import { playMessageSentSound, playMessageReceivedSound } from './utils/sounds.ts';
 
 // A sample catalog of products from the user's store.
 // In a real-world application, this would likely be fetched from a backend API.
