@@ -1,0 +1,7 @@
+{
+  "name": "love4Sex.ro AI Companion",
+  "description": "An AI-powered chat application designed to provide helpful and educational information about sexual health, wellness, and relationships in a safe and private environment.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
