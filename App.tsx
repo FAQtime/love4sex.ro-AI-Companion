@@ -97,60 +97,80 @@ const getLanguageName = (code: string) => {
     return 'English'; // Fallback
 }
 
-const initialWelcomeMessage: DisplayMessage = {
-  id: 'init',
-  sender: 'ai',
-  text: "Hello! I'm your private AI companion, here to help you explore sexual wellness. How can I help you today? Feel free to ask me anything.",
-};
-
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<DisplayMessage[]>([initialWelcomeMessage]);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [language, setLanguage] = useState('en-US'); // Default language
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
-  const [isApiError, setIsApiError] = useState(false);
+  const [isInputDisabled, setIsInputDisabled] = useState(true);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   
   const chatRef = useRef<Chat | null>(null);
-
-  // Initialize/re-initialize the AI model and chat session when language changes
+  
+  // On initial load, check for an API key in sessionStorage.
   useEffect(() => {
-    setIsApiError(false);
+    const storedKey = sessionStorage.getItem('gemini-api-key');
+    if (storedKey) {
+        setApiKey(storedKey);
+    } else {
+        setMessages([{
+            id: 'init-no-key',
+            sender: 'ai',
+            text: "Welcome! To get started, please add your Google AI API Key in the Settings menu (⚙️). Your key is stored securely in your browser's session and is never shared.",
+        }]);
+    }
+  }, []);
+
+  // Initialize/re-initialize the AI model and chat session when the API key or language changes.
+  useEffect(() => {
+    if (!apiKey) {
+      setIsInputDisabled(true);
+      return;
+    }
     
     try {
-      // In a static deployment without a build step, process.env.API_KEY will be undefined.
-      // This is the most likely reason for the app failing on the live domain.
-      if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not set. This is expected in a static deployment without a build process.");
-      }
-
       const languageName = getLanguageName(language);
       const systemInstruction = `You are a friendly, empathetic, and knowledgeable AI companion specializing in sexual wellness and education. Your name is Love4Sex AI. You must provide safe, non-judgmental, and informative advice. Always prioritize user safety, consent, and well-being. Do not generate explicit or pornographic content. Your tone should be supportive and reassuring.
 
 You have a tool called 'searchProducts' to find items from our partner store. If a user's question could be helped by a specific product (like a toy, lubricant, or condom), use this tool to find relevant options. When you recommend a product, present it in a helpful way, including its name and a direct link. Crucially, you MUST respond in ${languageName}.`;
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const ai = new GoogleGenAI({ apiKey: apiKey });
       chatRef.current = ai.chats.create({
         model: 'gemini-2.5-flash',
         config: {
           systemInstruction: systemInstruction,
         },
       });
-       // Reset to welcome message on successful re-initialization (e.g., language change)
-      setMessages([initialWelcomeMessage]);
+      
+      const welcomeMessage: DisplayMessage = {
+          id: 'init-success',
+          sender: 'ai',
+          text: `Hello! I'm your private AI companion, here to help you explore sexual wellness in ${languageName}. How can I help you today?`,
+      };
+      setMessages([welcomeMessage]);
+      setIsInputDisabled(false);
 
     } catch (error) {
         console.error("Failed to initialize AI:", error);
-        setIsApiError(true);
+        setIsInputDisabled(true);
         setMessages([{
             id: 'error-init',
             sender: 'ai',
-            text: "I'm sorry, I'm unable to connect right now. The application may not be configured correctly. Please try again later.",
+            text: "I'm sorry, I couldn't connect with that API Key. Please check the key in Settings and try again.",
         }]);
     }
-  }, [language]);
+  }, [apiKey, language]);
 
+  const handleSaveApiKey = (key: string) => {
+    if (key.trim()) {
+      setApiKey(key.trim());
+      sessionStorage.setItem('gemini-api-key', key.trim());
+      setIsSettingsModalOpen(false);
+    }
+  };
+  
   const handleGeolocate = useCallback(() => {
     if (!navigator.geolocation) {
         setMessages(prev => [...prev, {
@@ -179,10 +199,7 @@ You have a tool called 'searchProducts' to find items from our partner store. If
                 if (countryCode && countryToLanguageMap[countryCode]) {
                     const languageInfo = countryToLanguageMap[countryCode];
                     setLanguage(languageInfo.code);
-                    setMessages(prev => [...prev, {
-                        id: 'geo-success', sender: 'ai',
-                        text: `Location detected: ${countryName}. I will now respond in ${languageInfo.name}.`,
-                    }]);
+                    // The useEffect for language change will handle the new welcome message.
                 } else {
                     setMessages(prev => [...prev, {
                         id: 'geo-info-notfound', sender: 'ai',
@@ -208,7 +225,7 @@ You have a tool called 'searchProducts' to find items from our partner store. If
   }, []);
 
   const handleSendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isLoading || isApiError) return;
+    if (!text.trim() || isLoading || isInputDisabled) return;
 
     const newUserMessage: DisplayMessage = {
       id: Date.now().toString(),
@@ -241,8 +258,6 @@ You have a tool called 'searchProducts' to find items from our partner store. If
         
         for (const fc of response.functionCalls) {
             if (fc.name === 'searchProducts') {
-                // FIX: Cast the 'query' argument from the function call to a string.
-                // The AI model's arguments are of type `unknown`, so a type assertion is needed.
                 const query = fc.args.query as string;
                 const searchResults = searchProducts(query);
                 
@@ -256,9 +271,6 @@ You have a tool called 'searchProducts' to find items from our partner store. If
             }
         }
         
-        // FIX: The tool response must be sent as an array of `FunctionResponsePart` objects.
-        // The `sendMessage` function expects a `Part` or an array of `Part`s for the `message` property.
-        // The previous code was sending an object `{ toolResponse: ... }` which is not a valid `Part`.
         const functionResponseParts: Part[] = toolResponses.map(toolResp => ({
             functionResponse: {
                 name: toolResp.name,
@@ -296,7 +308,7 @@ You have a tool called 'searchProducts' to find items from our partner store. If
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, isSoundEnabled, isApiError]);
+  }, [isLoading, isSoundEnabled, isInputDisabled]);
 
   return (
     <div className="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
@@ -310,7 +322,7 @@ You have a tool called 'searchProducts' to find items from our partner store. If
           <ChatWindow messages={messages} isLoading={isLoading} />
           <MessageInput 
             onSendMessage={handleSendMessage} 
-            isLoading={isLoading || isApiError}
+            isLoading={isLoading || isInputDisabled}
             language={language}
           />
         </main>
@@ -327,6 +339,7 @@ You have a tool called 'searchProducts' to find items from our partner store. If
         onLanguageChange={setLanguage}
         isSoundEnabled={isSoundEnabled}
         onSoundToggle={() => setIsSoundEnabled(prev => !prev)}
+        onSaveApiKey={handleSaveApiKey}
       />
     </div>
   );

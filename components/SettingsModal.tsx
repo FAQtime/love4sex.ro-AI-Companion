@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -7,6 +7,7 @@ interface SettingsModalProps {
   onLanguageChange: (language: string) => void;
   isSoundEnabled: boolean;
   onSoundToggle: () => void;
+  onSaveApiKey: (key: string) => void;
 }
 
 const SettingsIcon = () => (
@@ -32,10 +33,16 @@ const supportedLanguages = [
   { code: 'zh-CN', name: '中文 (简体)' },
 ];
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, language, onLanguageChange, isSoundEnabled, onSoundToggle }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, language, onLanguageChange, isSoundEnabled, onSoundToggle, onSaveApiKey }) => {
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  
   if (!isOpen) {
     return null;
   }
+
+  const handleSaveClick = () => {
+    onSaveApiKey(apiKeyInput);
+  };
 
   return (
     <div 
@@ -62,9 +69,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
         </div>
         
         <div className="space-y-6">
+          
+          <div>
+            <label htmlFor="api-key-input" className="block text-sm font-medium text-purple-300 mb-2">
+              Google AI API Key
+            </label>
+            <div className="flex space-x-2">
+              <input
+                id="api-key-input"
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="Enter your API key here"
+                className="flex-1 w-full bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5"
+              />
+              <button
+                onClick={handleSaveClick}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Save
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Your key is required to power the AI and is stored only in your browser session.
+            </p>
+          </div>
+
+          <hr className="border-gray-600" />
+
           <div>
             <label htmlFor="language-select" className="block text-sm font-medium text-purple-300 mb-2">
-              Voice Input Language
+              Voice & Chat Language
             </label>
             <select
               id="language-select"
@@ -79,7 +114,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
               ))}
             </select>
             <p className="text-xs text-gray-400 mt-2">
-              Select the language for voice-to-text transcription.
+              Select the language for AI responses and voice-to-text transcription.
             </p>
           </div>
 
