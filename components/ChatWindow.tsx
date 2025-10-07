@@ -8,9 +8,14 @@ interface ChatWindowProps {
 }
 
 const AIIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.828 9.172a4 4 0 015.656 0L12 10.686l1.516-1.514a4 4 0 115.656 5.656L12 20.314l-7.172-7.172a4 4 0 010-5.656z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20">
+        <defs>
+        <linearGradient id="aiIconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#f472b6' }} /> {/* pink-400 */}
+            <stop offset="100%" style={{ stopColor: '#c084fc' }} /> {/* purple-400 */}
+        </linearGradient>
+        </defs>
+        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" fill="url(#aiIconGrad)" />
     </svg>
 );
 

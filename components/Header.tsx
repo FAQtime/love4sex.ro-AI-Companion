@@ -1,10 +1,5 @@
 import React from 'react';
-
-const HeartIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-400" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-    </svg>
-);
+import { Logo } from './Logo.tsx';
 
 const SafetyIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -26,19 +21,26 @@ const LocationIcon = () => (
     </svg>
 );
 
+const AboutIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
 interface HeaderProps {
     onOpenSafetyTips: () => void;
     onOpenSettings: () => void;
     onGeolocate: () => void;
+    onOpenAbout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSafetyTips, onOpenSettings, onGeolocate }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSafetyTips, onOpenSettings, onGeolocate, onOpenAbout }) => {
   return (
     <header className="mb-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-y-4">
             <div className="text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start space-x-3">
-                    <HeartIcon />
+                    <Logo className="h-10 w-10" />
                     <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">
                         Love4Sex AI Companion
                     </h1>
@@ -67,6 +69,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSafetyTips, onOpenSettings
                     aria-label="Open safety tips"
                 >
                     <SafetyIcon />
+                </button>
+                <button
+                    onClick={onOpenAbout}
+                    className="text-purple-300 hover:text-white transition-colors duration-200 p-2 rounded-full hover:bg-purple-500/20"
+                    aria-label="Open about page"
+                >
+                    <AboutIcon />
                 </button>
             </div>
         </div>

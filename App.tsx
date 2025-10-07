@@ -9,10 +9,16 @@ import { MessageInput } from './components/MessageInput.tsx';
 import { StoreLink } from './components/StoreLink.tsx';
 import { SafetyTipsModal } from './components/SafetyTipsModal.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
+import { AboutModal } from './components/AboutModal.tsx';
 import { playMessageSentSound, playMessageReceivedSound } from './utils/sounds.ts';
 
+// --- IMPORTANT SECURITY WARNING ---
+// Your API key is hardcoded here and will be VISIBLE to anyone who visits your website.
+// It is CRITICAL that you go to your Google Cloud project and set up strict budget alerts
+// and API quotas to prevent abuse and unexpected charges.
+const API_KEY = 'AIzaSyBhIqOh6gxdWcAdXIFiQLik9Fx1AX6sYTg';
+
 // A sample catalog of products from the user's store.
-// In a real-world application, this would likely be fetched from a backend API.
 const productCatalog: Product[] = [
   { name: 'We-Vibe Nova 2', description: 'A popular rabbit-style vibrator for couples, offering simultaneous clitoral and G-spot stimulation.', url: 'https://love4sex.ro/wordpress/index.php/produs/we-vibe-nova-2/', category: 'vibrator' },
   { name: 'Lelo Sona Cruise 2', description: 'A sonic clitoral massager that uses sonic waves for a unique and intense form of pleasure.', url: 'https://love4sex.ro/wordpress/index.php/produs/lelo-sona-cruise-2-black/', category: 'vibrator' },
@@ -29,7 +35,6 @@ const productCatalog: Product[] = [
   { name: 'Durex Pleasure Me Condoms', description: 'Condoms with a stimulating ribbed and dotted texture designed to increase pleasure for both partners.', url: 'https://love4sex.ro/wordpress/index.php/produs/prezervative-durex-pleasure-me-3-buc/', category: 'condom' },
 ];
 
-// Function to search the product catalog
 const searchProducts = (query: string): Product[] => {
     const lowerCaseQuery = query.toLowerCase();
     return productCatalog.filter(product => 
@@ -39,7 +44,6 @@ const searchProducts = (query: string): Product[] => {
     );
 };
 
-// Define the tool for the AI model
 const searchProductsTool: FunctionDeclaration = {
     name: 'searchProducts',
     description: 'Searches the partner store catalog for relevant sex toys, condoms, or lubricants.',
@@ -55,7 +59,6 @@ const searchProductsTool: FunctionDeclaration = {
     },
 };
 
-// Map country codes (ISO 3166-1 alpha-2) to language information
 const countryToLanguageMap: { [key: string]: { code: string; name: string } } = {
   'ro': { code: 'ro-RO', name: 'Romanian' },
   'de': { code: 'de-DE', name: 'German' },
@@ -94,7 +97,7 @@ const getLanguageName = (code: string) => {
         }
         return lang.name;
     }
-    return 'English'; // Fallback
+    return 'English';
 }
 
 const App: React.FC = () => {
@@ -102,32 +105,23 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [language, setLanguage] = useState('en-US'); // Default language
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [language, setLanguage] = useState('en-US');
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [isInputDisabled, setIsInputDisabled] = useState(true);
-  const [apiKey, setApiKey] = useState<string | null>(null);
   
   const chatRef = useRef<Chat | null>(null);
-  
-  // On initial load, check for an API key in sessionStorage.
-  useEffect(() => {
-    const storedKey = sessionStorage.getItem('gemini-api-key');
-    if (storedKey) {
-        setApiKey(storedKey);
-    } else {
-        setMessages([{
-            id: 'init-no-key',
-            sender: 'ai',
-            text: "Welcome! To get started, please add your Google AI API Key in the Settings menu (⚙️). Your key is stored securely in your browser's session and is never shared.",
-        }]);
-    }
-  }, []);
 
-  // Initialize/re-initialize the AI model and chat session when the API key or language changes.
+  // Initialize the AI chat session on initial mount
   useEffect(() => {
-    if (!apiKey) {
-      setIsInputDisabled(true);
-      return;
+    if (!API_KEY || API_KEY === 'PASTE_YOUR_GOOGLE_AI_API_KEY_HERE') {
+        setMessages([{
+            id: 'error-no-key',
+            sender: 'ai',
+            text: "Welcome! The AI companion is not configured correctly. The site owner needs to add an API key.",
+        }]);
+        setIsInputDisabled(true);
+        return;
     }
     
     try {
@@ -136,7 +130,7 @@ const App: React.FC = () => {
 
 You have a tool called 'searchProducts' to find items from our partner store. If a user's question could be helped by a specific product (like a toy, lubricant, or condom), use this tool to find relevant options. When you recommend a product, present it in a helpful way, including its name and a direct link. Crucially, you MUST respond in ${languageName}.`;
 
-      const ai = new GoogleGenAI({ apiKey: apiKey });
+      const ai = new GoogleGenAI({ apiKey: API_KEY });
       chatRef.current = ai.chats.create({
         model: 'gemini-2.5-flash',
         config: {
@@ -149,6 +143,7 @@ You have a tool called 'searchProducts' to find items from our partner store. If
           sender: 'ai',
           text: `Hello! I'm your private AI companion, here to help you explore sexual wellness in ${languageName}. How can I help you today?`,
       };
+
       setMessages([welcomeMessage]);
       setIsInputDisabled(false);
 
@@ -158,19 +153,11 @@ You have a tool called 'searchProducts' to find items from our partner store. If
         setMessages([{
             id: 'error-init',
             sender: 'ai',
-            text: "I'm sorry, I couldn't connect with that API Key. Please check the key in Settings and try again.",
+            text: "I'm sorry, the AI companion is currently unavailable. Please try again later.",
         }]);
     }
-  }, [apiKey, language]);
+  }, [language]);
 
-  const handleSaveApiKey = (key: string) => {
-    if (key.trim()) {
-      setApiKey(key.trim());
-      sessionStorage.setItem('gemini-api-key', key.trim());
-      setIsSettingsModalOpen(false);
-    }
-  };
-  
   const handleGeolocate = useCallback(() => {
     if (!navigator.geolocation) {
         setMessages(prev => [...prev, {
@@ -199,7 +186,6 @@ You have a tool called 'searchProducts' to find items from our partner store. If
                 if (countryCode && countryToLanguageMap[countryCode]) {
                     const languageInfo = countryToLanguageMap[countryCode];
                     setLanguage(languageInfo.code);
-                    // The useEffect for language change will handle the new welcome message.
                 } else {
                     setMessages(prev => [...prev, {
                         id: 'geo-info-notfound', sender: 'ai',
@@ -244,11 +230,9 @@ You have a tool called 'searchProducts' to find items from our partner store. If
       
       let response = await chatRef.current.sendMessage({ 
           message: text,
-          // Add the tool to the request
           config: { tools: [{ functionDeclarations: [searchProductsTool] }] }
       });
 
-      // Check if the model wants to call a function
       if (response.functionCalls && response.functionCalls.length > 0) {
         const toolResponses: {
             id: string;
@@ -310,15 +294,25 @@ You have a tool called 'searchProducts' to find items from our partner store. If
     }
   }, [isLoading, isSoundEnabled, isInputDisabled]);
 
+  const backgroundSvgUrl = `data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3e%3cpath d='M0 40 Q 20 20, 40 40 T 80 40' stroke='rgba(192, 132, 252, 0.1)' stroke-width='1' fill='none'/%3e%3c/svg%3e`;
+
   return (
     <div className="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
       <div className="container mx-auto p-4 flex flex-col flex-1 max-w-4xl">
         <Header 
+          onOpenAbout={() => setIsAboutModalOpen(true)}
           onOpenSafetyTips={() => setIsSafetyModalOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onGeolocate={handleGeolocate}
         />
-        <main className="flex-1 flex flex-col bg-black bg-opacity-20 rounded-2xl shadow-xl overflow-hidden border border-purple-500/10">
+        <main 
+          className="relative flex-1 flex flex-col rounded-2xl shadow-xl overflow-hidden border border-purple-500/10"
+          style={{
+            backgroundImage: `radial-gradient(ellipse at top, rgba(31, 25, 48, 0.5), transparent), radial-gradient(ellipse at bottom, rgba(48, 25, 40, 0.5), transparent), url('${backgroundSvgUrl}')`,
+            backgroundColor: '#0a0514',
+            backgroundSize: 'cover, cover, 80px 80px',
+          }}
+        >
           <ChatWindow messages={messages} isLoading={isLoading} />
           <MessageInput 
             onSendMessage={handleSendMessage} 
@@ -332,6 +326,10 @@ You have a tool called 'searchProducts' to find items from our partner store. If
         isOpen={isSafetyModalOpen} 
         onClose={() => setIsSafetyModalOpen(false)} 
       />
+      <AboutModal 
+        isOpen={isAboutModalOpen} 
+        onClose={() => setIsAboutModalOpen(false)} 
+      />
       <SettingsModal 
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
@@ -339,7 +337,6 @@ You have a tool called 'searchProducts' to find items from our partner store. If
         onLanguageChange={setLanguage}
         isSoundEnabled={isSoundEnabled}
         onSoundToggle={() => setIsSoundEnabled(prev => !prev)}
-        onSaveApiKey={handleSaveApiKey}
       />
     </div>
   );
